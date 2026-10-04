@@ -1,0 +1,13 @@
+branch_code,branch_name,region,ownership,open_date,close_date,wash_bays
+DBN01,Umhlanga,Durban North,Company,2021-03-01,,6
+DBN02,Durban North,Durban North,Company,2021-03-01,,5
+DBN03,Musgrave,Durban Central,Company,2021-03-01,,5
+DBN04,Westville,Durban West,Franchise,2021-03-01,,4
+DBN05,Pinetown,Durban West,Franchise,2021-03-01,,5
+DBN06,Amanzimtoti,Durban South,Franchise,2021-03-01,,4
+DBN07,Ballito,Durban North,Company,2025-06-02,,5
+DBN08,Chatsworth,Durban South,Franchise,2021-03-01,,6
+PMB01,PMB Victoria Rd,Pietermaritzburg,Company,2021-03-01,,5
+PMB02,Hayfields,Pietermaritzburg,Company,2021-03-01,,4
+PMB03,Hilton,Pietermaritzburg,Franchise,2025-11-03,,3
+PMB04,Northdale,Pietermaritzburg,Franchise,2021-03-01,2025-09-30,4

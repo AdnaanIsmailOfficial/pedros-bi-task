@@ -1,0 +1,27 @@
+item_code,description,category,list_price_incl,active
+SV01,Express Wash  ,Wash,125.00,Y
+SV02,Wash and Vac,Wash,190.00,Y
+SV03,Full Valet,Wash,475.00,Y
+SV04,Interior Detail,Detail,690.00,Y
+SV05,Exterior Detail,Detail,795.00,Y
+SV06,Full Detail,Detail,1270.00,Y
+SV07,Ceramic Coating,Detail,4770.00,Y
+SV08,Paint Correction  ,Detail,2970.00,Y
+SV09,Headlight Restoration,Detail,370.00,Y
+SV10,Engine Bay Clean,Wash,320.00,Y
+AD01,Tyre Shine,Add-on,40.00,Y
+AD02,Air Freshener,Add-on,25.00,Y
+AD03,Wax Upgrade,ADD-ON,160.00,Y
+AD04,Leather Treatment,Add-on,265.00,Y
+AD05,Pet Hair Removal  ,ADD-ON,190.00,Y
+AD06,Odour Treatment,Add-on,320.00,Y
+RT01,Microfibre Cloth 3 Pack,Retail,104.00,Y
+RT02,Car Shampoo 1L,Retail,135.00,Y
+RT03,Foam Cannon,Retail,524.00,Y
+RT04,Tyre Gel 500ml,retail ,93.00,Y
+RT05,Glass Cleaner 500ml,Retail,83.00,Y
+RT06,Wash Mitt  ,Retail,72.00,Y
+RT07,Dash Wipes,Retail,62.00,Y
+RT08,Pressure Washer Lance,Retail,366.00,Y
+SV02,Wash and Vac,Wash,190.00,Y
+SV11,Fleet Wash (discontinued),Wash,95.00,N
