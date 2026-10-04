@@ -1,4 +1,4 @@
-branch_code,branch_name,region,ownership,open_date,close_date,wash_bays
+branch_code,branch_name,region,ownership,open_date,close_date,tills
 DBN01,Umhlanga,Durban North,Company,2021-03-01,,6
 DBN02,Durban North,Durban North,Company,2021-03-01,,5
 DBN03,Musgrave,Durban Central,Company,2021-03-01,,5

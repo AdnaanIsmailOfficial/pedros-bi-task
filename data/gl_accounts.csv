@@ -1,7 +1,7 @@
 account_code,account_name,pl_group
 6000,Salaries and wages,Operating expenses
 6100,Rent and rates,Operating expenses
-6200,Water and electricity,Operating expenses
+6200,"Electricity, gas and water",Operating expenses
 6300,Marketing,Operating expenses
 6400,Repairs and maintenance,Operating expenses
 6500,Card commission and bank charges,Operating expenses
