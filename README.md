@@ -18,7 +18,7 @@ This README is updated as each step is finished.
 | 5. Reconcile | Sales, GP and EBITDA against finance's control totals | Done |
 | 6. Export | Marts for Power BI | Done |
 | 7. Power BI model | Load the marts and set the relationships | Done |
-| 8. Measures | DAX measures, each tested against SQL | Next |
+| 8. Measures | DAX measures, each tested against SQL | In progress: 14 done |
 | 9. Report | Four report pages | To do |
 
 ## How to run it
@@ -302,6 +302,58 @@ There are 11 relationships. Every one is many to one from a fact to a dimension,
 - **No fact joins to another fact.** Sales, costs and budget only meet through the shared dimensions, which is what lets one branch or month filter work on all of them.
 - **Single direction only.** Filters flow from dimensions to facts. Two-way filters can give ambiguous results and are not needed here.
 - **`dim_date` is marked as the date table**, so the year on year measures use the fiscal calendar built in SQL.
+
+## Step 8: DAX measures
+
+All measures live in one table called `_Measures`. Each batch is tested in DAX query view against figures worked out separately in SQL before it is saved into the model.
+
+### Base measures
+
+| Measure | DAX |
+| --- | --- |
+| Sales | `SUM ( fact_sales[net_sales_excl] )` |
+| Cost of Sales | `SUM ( fact_sales[cost_of_sales_excl] )` |
+| Gross Profit | `SUM ( fact_sales[gross_profit] )` |
+| GP % | `DIVIDE ( [Gross Profit], [Sales] )` |
+| Opex | `CALCULATE ( SUM ( fact_opex[amount_excl] ), dim_account[is_in_ebitda] = TRUE () )` |
+| EBITDA | `[Gross Profit] - [Opex]` |
+
+Test: Sales, Gross Profit, Opex and EBITDA by financial year in Power BI equal finance's control totals to the cent, the same as the warehouse.
+
+### Budget and last year
+
+| Measure | What it does |
+| --- | --- |
+| Budget Sales | Budget rows where the measure is "Sales excl VAT" |
+| Budget GP | Budget rows where the measure is "Gross profit" |
+| Sales vs Budget % | (Sales less Budget Sales) divided by Budget Sales |
+| GP vs Budget % | (Gross Profit less Budget GP) divided by Budget GP |
+| Sales LY | Sales for the same dates one year earlier |
+| GP LY | Gross Profit for the same dates one year earlier |
+| Sales Growth % | (Sales less Sales LY) divided by Sales LY |
+| GP % LY | GP LY divided by Sales LY |
+
+```
+Sales LY =
+VAR LastSaleDate = CALCULATE ( MAX ( fact_sales[txn_date] ), REMOVEFILTERS () )
+RETURN
+    CALCULATE (
+        [Sales],
+        DATEADD ( FILTER ( VALUES ( dim_date[date] ), dim_date[date] <= LastSaleDate ), -1, YEAR )
+    )
+```
+
+**Why the last sale date matters.** The data stops at the end of August 2026 but the calendar runs to February 2027. Without the `LastSaleDate` filter, FY27 (six months of sales) would be compared with all twelve months of FY26 and show a large fake decline. With it, FY27 H1 is compared with FY26 H1.
+
+Test, Power BI against SQL:
+
+| Period | Sales | Budget Sales | vs Budget | Sales LY | Growth |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| FY25 | 12,926,995.45 | 13,266,000 | -2.6% | none | none |
+| FY26 | 14,893,335.92 | 15,138,500 | -1.6% | 12,926,995.45 | 15.2% |
+| FY27 H1 | 8,171,216.44 | 8,226,500 | -0.7% | 6,833,006.03 | 19.6% |
+
+FY25 has no last year figure because there is no FY24 data. It shows as blank, not zero.
 
 ## Definitions and decisions
 
