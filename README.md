@@ -13,9 +13,9 @@ This README is updated as each step is finished.
 | Profile | Ask questions of the raw files and list the data problems | Done |
 | 1. Land | Copy the raw extracts into the warehouse, untouched | Done |
 | 2. Stage | Clean the data, one rule per problem | Done |
-| 3. Model | Star schema: facts and dimensions | Next |
-| 4. Check | Automated data checks that stop the pipeline | To do |
-| 5. Reconcile | Sales, GP and EBITDA against finance's control totals | Sales done, GP and EBITDA to do |
+| 3. Model | Star schema: facts and dimensions | Done |
+| 4. Check | Automated data checks that stop the pipeline | Next |
+| 5. Reconcile | Sales, GP and EBITDA against finance's control totals | All three tie. Formal check script to do |
 | 6. Export | Marts for Power BI | To do |
 | 7. Report | Power BI model, measures and four pages | To do |
 
@@ -27,6 +27,7 @@ You need Python with the `duckdb` package (`pip install duckdb`). From this fold
 python explore.py        # optional: the profiling questions
 python 01_land_raw.py    # builds warehouse.duckdb with the raw tables
 python 02_stage.py       # builds the clean staging tables
+python 03_model.py       # builds the star schema
 ```
 
 Every script can be run again at any time. Each one rebuilds its tables from scratch, so a rerun gives the same result and never creates duplicates.
@@ -42,13 +43,14 @@ Every script can be run again at any time. Each one rebuilds its tables from scr
 | `problems.md` | The 14 data problems found, with how each was spotted and the fix |
 | `01_land_raw.py` | Step 1: lands the raw files in the warehouse |
 | `02_stage.py` | Step 2: cleans the raw tables into staging tables |
+| `03_model.py` | Step 3: builds the facts and dimensions |
 | `warehouse.duckdb` | The warehouse. Not in git; the scripts rebuild it |
 
 ## The layers
 
 1. **Raw (`raw_*`).** One table per extract, every column kept as text, never edited. Each row records which file it came from and when it was loaded. This means any number can be traced back to its source file.
 2. **Staging (`stg_*`).** The cleaned version of each raw table: real data types, standard codes, bad rows removed. Each rule is commented in the SQL with the problem number it fixes.
-3. **Marts (`fact_*`, `dim_*`).** The star schema that Power BI reads. Not built yet.
+3. **Marts (`fact_*`, `dim_*`).** The star schema that Power BI reads.
 
 All cleaning is done in SQL in the warehouse. Power BI will only model and measure.
 
@@ -130,7 +132,59 @@ With the rules above, sales excl VAT match finance's control totals to the cent 
 | FY26 | 14,893,335.92 | 14,893,335.92 | 0.00 |
 | FY27 H1 | 8,171,216.44 | 8,171,216.44 | 0.00 |
 
-Gross Profit and EBITDA are reconciled after the star schema is built, because GP needs the cost attached to each sales line.
+## Step 3: the star schema
+
+`03_model.py` builds the tables Power BI will read. Facts hold the numbers. Dimensions hold the things you slice the numbers by.
+
+| Table | One row per | Rows |
+| --- | --- | ---: |
+| `fact_sales` | POS line (sales and refunds), excl VAT, with cost and gross profit | 694,986 |
+| `fact_voids` | Voided POS line, for the void-rate KPI | 8,661 |
+| `fact_opex` | Branch, month and ledger account | 2,587 |
+| `fact_budget` | Branch, month and measure (Sales or Gross profit) | 628 |
+| `dim_date` | Day, 1 March 2024 to 28 February 2027 | 1,095 |
+| `dim_branch` | Branch | 12 |
+| `dim_item` | Item | 27 |
+| `dim_account` | Ledger account | 9 |
+
+### How the facts join to the dimensions
+
+| Fact | Joins to |
+| --- | --- |
+| `fact_sales` | `dim_date` on `txn_date`, `dim_branch` on `branch_code`, `dim_item` on `item_code` |
+| `fact_voids` | `dim_date` on `txn_date`, `dim_branch` on `branch_code`, `dim_item` on `item_code` |
+| `fact_opex` | `dim_date` on `month_start`, `dim_branch` on `branch_code`, `dim_account` on `account_code` |
+| `fact_budget` | `dim_date` on `month_start`, `dim_branch` on `branch_code` |
+
+Sales are daily, while the ledger and the budget are monthly. The monthly facts join to the first day of their month in `dim_date`, so all of them can be filtered by the same month, quarter and financial year.
+
+### Design choices
+
+- **Cost on each sales line.** Costs changed over time, so each line gets the cost that was in force on the day of the sale. Using today's cost for old sales would understate past gross profit.
+- **Gross profit is stored per line.** `gross_profit` = `net_sales_excl` less quantity x unit cost. A refund has a negative quantity, so it reverses both the sale and its cost.
+- **Fiscal calendar in `dim_date`.** March is fiscal month 1. The table covers three whole financial years (FY25 to FY27) so that year on year comparisons in Power BI have complete years to work with.
+- **`fact_opex` is summed to branch, month and account.** The ledger has two lines for DBN02 repairs in October 2025 (an expense and a credit), which net off into one row. That is why it has 2,587 rows and the ledger has 2,588.
+
+### Checks built into the script
+
+The run stops with an error if any of these fail:
+
+- attaching cost did not change the number of sales lines
+- every sales line has a cost
+- every sale date exists in `dim_date`, and `dim_date` has no repeated day
+- `fact_opex` adds up to the same total as the ledger
+
+### Sales, Gross Profit and EBITDA tie to finance
+
+All nine figures match finance's control totals to the cent.
+
+| Period | Sales | Gross Profit | GP % | Operating expenses | EBITDA |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| FY25 | 12,926,995.45 | 7,386,015.95 | 57.1% | 5,495,741.82 | 1,890,274.13 |
+| FY26 | 14,893,335.92 | 8,278,456.34 | 55.6% | 6,199,802.50 | 2,078,653.84 |
+| FY27 H1 | 8,171,216.44 | 4,564,110.83 | 55.9% | 3,380,369.00 | 1,183,741.83 |
+
+For now this is a comparison by eye at the end of `03_model.py`. Step 5 turns it into an automated check that stops the pipeline.
 
 ## Definitions and decisions
 
