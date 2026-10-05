@@ -18,8 +18,8 @@ This README is updated as each step is finished.
 | 5. Reconcile | Sales, GP and EBITDA against finance's control totals | Done |
 | 6. Export | Marts for Power BI | Done |
 | 7. Power BI model | Load the marts and set the relationships | Done |
-| 8. Measures | DAX measures, each tested against SQL | In progress: 14 done |
-| 9. Report | Four report pages | To do |
+| 8. Measures | 26 DAX measures, each tested against SQL | Done |
+| 9. Report | Four report pages | Next |
 
 ## How to run it
 
@@ -354,6 +354,44 @@ Test, Power BI against SQL:
 | FY27 H1 | 8,171,216.44 | 8,226,500 | -0.7% | 6,833,006.03 | 19.6% |
 
 FY25 has no last year figure because there is no FY24 data. It shows as blank, not zero.
+
+### Store KPIs
+
+| Measure | Definition |
+| --- | --- |
+| Transactions | Distinct `txn_id` where the type is SALE. Refunds are not counted as transactions |
+| Average Ticket | Sales divided by Transactions |
+| Discount % | Discount divided by gross sales (before discount) |
+| Void Value | Value of voided lines, excl VAT |
+| Void % | Void Value divided by Sales |
+| Labour % | Salaries and wages (account 6000) divided by Sales |
+| Drink Attach % | Share of transactions that include at least one drink |
+| EBITDA % | EBITDA divided by Sales |
+
+The ledger is monthly, so Labour % and EBITDA % are only meaningful by month or longer, not by week.
+
+Test, Power BI against SQL:
+
+| Period | Transactions | Average Ticket | Discount % | Void % | Labour % | Drink Attach % | EBITDA % |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| FY25 | 122,684 | 105.37 | 2.0% | 1.3% | 23.4% | 47.1% | 14.6% |
+| FY26 | 134,462 | 110.76 | 1.9% | 1.3% | 23.1% | 46.9% | 14.0% |
+| FY27 H1 | 71,381 | 114.47 | 1.8% | 1.3% | 22.9% | 47.1% | 14.5% |
+
+### Like-for-like
+
+**Rule:** a store counts as like-for-like for a period if it was already open at the start of the same period one year earlier, and was still open at the end of the period. Stores that opened or closed in between are left out of both years.
+
+Measures: `LFL Stores`, `LFL Sales`, `LFL Sales LY`, `LFL Growth %`. The rule is worked out from `open_date` and `close_date` in `dim_branch` for whatever period is on screen, so it works for a year, a quarter or a month without any hard-coded store list.
+
+Test, Power BI against SQL:
+
+| Period | LFL stores | LFL Sales | LFL Sales LY | LFL growth | Total growth |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| FY26 | 9 | 13,266,743.58 | 12,067,043.18 | 9.9% | 15.2% |
+| FY27 H1 | 9 | 6,901,298.30 | 6,264,003.03 | 10.2% | 19.6% |
+
+Total sales grew 15% and 20%, but the same nine stores grew about 10%. The rest came from opening Ballito and Hilton, net of closing Northdale.
 
 ## Definitions and decisions
 
