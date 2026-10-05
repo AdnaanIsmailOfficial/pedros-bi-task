@@ -20,8 +20,8 @@ This README is updated as each step is finished.
 | 7. Power BI model | Load the marts and set the relationships | Done |
 | 8. Measures | 31 DAX measures, each tested against SQL | Done |
 | 9. Report | Four report pages | Done |
-| 10. Excel check | Pivot of the FY26 branch P&L from the warehouse | Next |
-| 11. Findings | One-page summary for the Financial Manager | To do |
+| 10. Excel check | Pivot of the FY26 branch P&L from the warehouse | Done |
+| 11. Findings | One-page summary for the Financial Manager | Next |
 
 ## How to run it
 
@@ -40,6 +40,7 @@ python 02_stage.py       # builds the clean staging tables
 python 03_model.py       # builds the star schema
 python 04_checks.py      # runs the data checks and the reconciliation
 python 05_export.py      # writes the star schema to the marts folder
+python 06_excel_data.py  # writes the data for the Excel check
 ```
 
 Every script can be run again at any time. Each one rebuilds its tables from scratch, so a rerun gives the same result and never creates duplicates.
@@ -58,6 +59,9 @@ Every script can be run again at any time. Each one rebuilds its tables from scr
 | `03_model.py` | Step 3: builds the facts and dimensions |
 | `04_checks.py` | Steps 4 and 5: the data checks and the reconciliation to finance |
 | `05_export.py` | Step 6: exports the star schema as Parquet files |
+| `06_excel_data.py` | Step 10: exports the FY26 branch P&L lines for the Excel check |
+| `excel/fy26_branch_pl_data.xlsx` | The data for the Excel check, written by the script |
+| `excel/fy26_branch_pl_check.xlsx` | The Excel check: the same data with a pivot table on the `pivot` sheet |
 | `run_pipeline.py` | Runs all the steps in order and stops if one fails |
 | `flame_yard.pbix` | The Power BI report |
 | `warehouse.duckdb` | The warehouse. Not in git; the scripts rebuild it |
@@ -425,6 +429,24 @@ All four pages required by the brief are in `flame_yard.pbix`. The year slicer i
 | Branch P&L | Year and branch slicers. Monthly P&L from Sales down to EBITDA. Operating costs by account by month | 1 and 5 |
 
 Figures on every page were checked against SQL on the warehouse while it was built.
+
+## Step 10: the Excel check
+
+An independent check that the report is right. The FY26 branch P&L is rebuilt in Excel from the warehouse, without Power BI and without any DAX measure, and compared with the Branch P&L page.
+
+**How it works.** `06_excel_data.py` queries the warehouse with SQL and writes one row per branch, month and P&L line to `excel/fy26_branch_pl_data.xlsx` (1,152 rows). Sales are positive and every cost is negative, so adding up any group of rows gives its profit: Sales plus Cost of sales is Gross Profit, and all rows together are EBITDA.
+
+**The pivot.** `excel/fy26_branch_pl_check.xlsx` has a pivot table on the `pivot` sheet: `pl_group` and `pl_line` in Rows, `branch_name` in Columns, Sum of `amount` in Values. It was built by hand in Excel for the web.
+
+**Result.** The pivot and the Power BI report agree.
+
+| FY26, all branches | Excel pivot | Power BI | Finance |
+| --- | ---: | ---: | ---: |
+| Gross Profit | 8,278,456.34 | 8,278,456.34 | 8,278,456.34 |
+| Operating expenses | 6,199,802.50 | 6,199,802.50 | |
+| EBITDA | 2,078,653.84 | 2,078,653.84 | 2,078,653.84 |
+
+Per branch they agree as well, for example Musgrave EBITDA of 11,931.79 in both. Northdale shows minus 3,689.02 in Excel and minus 3,689.01 in Power BI. The one cent is because the export rounds each row to two decimals before Excel adds them up.
 
 ## What the report shows
 
