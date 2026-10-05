@@ -85,6 +85,7 @@ The proof that this list is complete enough: with problems 1 to 5 handled, FY25 
 - **Saw:** 24 rows (12 branches x 2 measures) and 30 month columns named `Mar-24` to `Aug-26`.
 - **Risk:** cannot be joined to a date table or filtered by month in this shape.
 - **Fix:** unpivot to one row per branch, measure and month, and turn the column name into a date.
+- **Found while staging:** cells are empty for months when a store was not open (DBN07 before June 2025, PMB03 before November 2025, PMB04 after September 2025). Those months get no budget row, so there are 628 rows, not 720.
 
 ## Branches
 
