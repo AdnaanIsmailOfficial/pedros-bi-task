@@ -19,7 +19,7 @@ This README is updated as each step is finished.
 | 6. Export | Marts for Power BI | Done |
 | 7. Power BI model | Load the marts and set the relationships | Done |
 | 8. Measures | 31 DAX measures, each tested against SQL | Done |
-| 9. Report | Four report pages | Done |
+| 9. Report | The four required pages plus a Weekly KPIs page | Done |
 | 10. Excel check | Pivot of the FY26 branch P&L from the warehouse | Done |
 | 11. Findings | One-page summary for the Financial Manager | Drafted in `findings.md` |
 
@@ -420,7 +420,7 @@ Test, Power BI against SQL:
 
 ## Step 9: the report pages
 
-All four pages required by the brief are in `flame_yard.pbix`. The year slicer is synced across the pages that use it, so two pages never quietly show different years.
+All four pages required by the brief are in `flame_yard.pbix`, plus a fifth page for the weekly store KPIs. The year slicer is synced across the pages that use it, so two pages never quietly show different years.
 
 | Page | What is on it | Business question |
 | --- | --- | --- |
@@ -428,6 +428,7 @@ All four pages required by the brief are in `flame_yard.pbix`. The year slicer i
 | Branch performance | Year slicer. One row per branch with Sales, vs Budget, Growth, GP %, Discount %, Opex %, Labour %, EBITDA and EBITDA %, with low GP % and high Opex % shaded red. Each cost type as a share of sales per branch | 3 |
 | Margin and product mix | No year filter, so all 30 months show. GP % by month. Average selling price against average unit cost by month. Sales, mix and GP % by category | 4 |
 | Branch P&L | Year and branch slicers. Monthly P&L from Sales down to EBITDA. Operating costs by account by month | 1 and 5 |
+| Weekly KPIs | Year slicer. Transactions, Average Ticket, Discount %, Void %, Drink Attach % and Labour % per branch. Transactions and Average Ticket by week | 6 |
 
 Figures on every page were checked against SQL on the warehouse while it was built.
 
