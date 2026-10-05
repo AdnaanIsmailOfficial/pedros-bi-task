@@ -18,8 +18,10 @@ This README is updated as each step is finished.
 | 5. Reconcile | Sales, GP and EBITDA against finance's control totals | Done |
 | 6. Export | Marts for Power BI | Done |
 | 7. Power BI model | Load the marts and set the relationships | Done |
-| 8. Measures | 26 DAX measures, each tested against SQL | Done |
-| 9. Report | Four report pages | Next |
+| 8. Measures | 31 DAX measures, each tested against SQL | Done |
+| 9. Report | Four report pages | Done |
+| 10. Excel check | Pivot of the FY26 branch P&L from the warehouse | Next |
+| 11. Findings | One-page summary for the Financial Manager | To do |
 
 ## How to run it
 
@@ -392,6 +394,47 @@ Test, Power BI against SQL:
 | FY27 H1 | 9 | 6,901,298.30 | 6,264,003.03 | 10.2% | 19.6% |
 
 Total sales grew 15% and 20%, but the same nine stores grew about 10%. The rest came from opening Ballito and Hilton, net of closing Northdale.
+
+### Margin and mix
+
+| Measure | Definition |
+| --- | --- |
+| Opex % | Opex divided by Sales |
+| Units | Sum of quantity sold. Refunds reduce it |
+| Avg Selling Price | Gross sales excl VAT divided by Units |
+| Avg Unit Cost | Cost of Sales divided by Units |
+| Sales Mix % | Sales for the item or category divided by Sales for all items |
+
+Test, Power BI against SQL:
+
+| Month | Avg Selling Price | Avg Unit Cost | GP % |
+| --- | ---: | ---: | ---: |
+| Mar 2025 | 45.71 | 19.21 | 57.1% |
+| Apr 2025 | 45.14 | 20.47 | 53.7% |
+| Jul 2025 | 47.82 | 20.64 | 56.0% |
+
+## Step 9: the report pages
+
+All four pages required by the brief are in `flame_yard.pbix`. The year slicer is synced across the pages that use it, so two pages never quietly show different years.
+
+| Page | What is on it | Business question |
+| --- | --- | --- |
+| Executive summary | Year slicer. Cards for Sales, Gross Profit, GP %, EBITDA, Sales vs Budget %, Sales Growth % and LFL Growth %. Sales by month against budget and last year. EBITDA by branch | 1 and 2 |
+| Branch performance | Year slicer. One row per branch with Sales, vs Budget, Growth, GP %, Discount %, Opex %, Labour %, EBITDA and EBITDA %, with low GP % and high Opex % shaded red. Each cost type as a share of sales per branch | 3 |
+| Margin and product mix | No year filter, so all 30 months show. GP % by month. Average selling price against average unit cost by month. Sales, mix and GP % by category | 4 |
+| Branch P&L | Year and branch slicers. Monthly P&L from Sales down to EBITDA. Operating costs by account by month | 1 and 5 |
+
+Figures on every page were checked against SQL on the warehouse while it was built.
+
+## What the report shows
+
+These are the first readings from the pages. The findings summary will set them out properly.
+
+- **Growth (question 2).** Sales grew 15.2% in FY26 and 19.6% in FY27 H1, but the same nine stores grew 9.9% and 10.2%. The rest came from new stores.
+- **Underperformers (question 3).** Musgrave has healthy sales (R1.29m in FY26) but an EBITDA of only R12k, because costs take 55% of sales against about 39% elsewhere. The cause is salaries (32% of sales against about 21%) and rent (14% against about 9%). Pinetown has the third-highest sales but a GP % of 50.4% against about 56% elsewhere, because it gives away 12% of gross sales in discounts.
+- **Margin dip (question 4).** GP % was 57.1% until March 2025, fell to 53.7% for April to June 2025, and has been 56.0% since July 2025. Unit costs rose about 8% on 1 April 2025 and selling prices only rose on 1 July 2025. It has recovered most of the way but is still about one point lower.
+- **Northdale (question 5).** Sales fell from R70k to R80k a month in 2024 to R47k to R63k a month in 2025. It missed its sales budget by 15% to 23% in every month. In its last seven months it lost money in four and made a total of minus R3.7k. The data supports the closure.
+- **Mix.** Chicken is 51% of sales. Sides earn the highest margin (69%) and drinks the lowest (41%).
 
 ## Definitions and decisions
 
