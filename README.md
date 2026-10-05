@@ -14,20 +14,27 @@ This README is updated as each step is finished.
 | 1. Land | Copy the raw extracts into the warehouse, untouched | Done |
 | 2. Stage | Clean the data, one rule per problem | Done |
 | 3. Model | Star schema: facts and dimensions | Done |
-| 4. Check | Automated data checks that stop the pipeline | Next |
-| 5. Reconcile | Sales, GP and EBITDA against finance's control totals | All three tie. Formal check script to do |
-| 6. Export | Marts for Power BI | To do |
+| 4. Check | Automated data checks that stop the pipeline | Done |
+| 5. Reconcile | Sales, GP and EBITDA against finance's control totals | Done |
+| 6. Export | Marts for Power BI | Next |
 | 7. Report | Power BI model, measures and four pages | To do |
 
 ## How to run it
 
-You need Python with the `duckdb` package (`pip install duckdb`). From this folder, run the scripts in order:
+You need Python with the `duckdb` package (`pip install duckdb`). From this folder, one command runs everything in order and stops at the first step that fails:
+
+```
+python run_pipeline.py
+```
+
+Or run the scripts one at a time:
 
 ```
 python explore.py        # optional: the profiling questions
 python 01_land_raw.py    # builds warehouse.duckdb with the raw tables
 python 02_stage.py       # builds the clean staging tables
 python 03_model.py       # builds the star schema
+python 04_checks.py      # runs the data checks and the reconciliation
 ```
 
 Every script can be run again at any time. Each one rebuilds its tables from scratch, so a rerun gives the same result and never creates duplicates.
@@ -44,6 +51,8 @@ Every script can be run again at any time. Each one rebuilds its tables from scr
 | `01_land_raw.py` | Step 1: lands the raw files in the warehouse |
 | `02_stage.py` | Step 2: cleans the raw tables into staging tables |
 | `03_model.py` | Step 3: builds the facts and dimensions |
+| `04_checks.py` | Steps 4 and 5: the data checks and the reconciliation to finance |
+| `run_pipeline.py` | Runs all the steps in order and stops if one fails |
 | `warehouse.duckdb` | The warehouse. Not in git; the scripts rebuild it |
 
 ## The layers
@@ -184,7 +193,62 @@ All nine figures match finance's control totals to the cent.
 | FY26 | 14,893,335.92 | 8,278,456.34 | 55.6% | 6,199,802.50 | 2,078,653.84 |
 | FY27 H1 | 8,171,216.44 | 4,564,110.83 | 55.9% | 3,380,369.00 | 1,183,741.83 |
 
-For now this is a comparison by eye at the end of `03_model.py`. Step 5 turns it into an automated check that stops the pipeline.
+This comparison is automated in the next step.
+
+## Steps 4 and 5: data checks and reconciliation
+
+`04_checks.py` runs 16 checks on the finished star schema. Each check is a query that counts the rows breaking a rule, so zero means pass. If any check fails, the script exits with an error, `run_pipeline.py` stops, and nothing after it runs.
+
+| Group | Check |
+| --- | --- |
+| Unique keys | `fact_sales` has one row per `txn_id` + `line_no` |
+| Unique keys | `fact_opex` has one row per branch, month and account |
+| Unique keys | `fact_budget` has one row per branch, month and measure |
+| Unique keys | Each dimension has one row per key |
+| No orphan codes | Every sale and void has a known branch, item and date |
+| No orphan codes | Every ledger and budget row has a known branch, account and month |
+| Row counts | Every unique raw POS line is in `fact_sales`, in `fact_voids`, or is a TEST line |
+| Row counts | The ledger total is the same in raw and in `fact_opex` |
+| No empty values | No empty money, quantity or cost in `fact_sales` |
+| No empty values | No empty amounts in `fact_opex` or `fact_budget` |
+| Business rules | `fact_sales` holds only SALE and REFUND lines, and no TEST cashier |
+| Business rules | Sales are positive and refunds are negative |
+| Business rules | Net sales = gross sales less discount, and GP = net sales less cost |
+| Business rules | No store has sales before it opened or after it closed |
+| Completeness | Every store has sales and ledger costs in every month it was open |
+| Reconciliation | Sales, GP and EBITDA match finance's control totals in every period |
+
+All 16 pass.
+
+### Why each group matters
+
+- **Unique keys:** a repeated key means something is counted twice.
+- **No orphan codes:** a sale with an unknown branch or item would show as blank in Power BI, or vanish from a filtered chart.
+- **Row counts:** proves no line was lost or doubled between the raw files and the facts.
+- **No empty values:** an empty cost would silently make gross profit too high.
+- **Business rules:** proves the fixes in `problems.md` actually held.
+- **Completeness:** a missing month would look like a real drop in sales or costs.
+- **Reconciliation:** the final proof that the totals agree with finance.
+
+### Proving the checks can fail
+
+A check that can never fail proves nothing. To test them, a copy of the warehouse was broken on purpose in four ways: five sales lines doubled, one sale given an unknown branch, one cost emptied, and one month of ledger costs deleted for one store. The checks script was then pointed at the broken copy with `python 04_checks.py <file>`. Seven of the 16 checks failed and the script exited with an error. The real warehouse was not touched.
+
+### Reconciliation
+
+| Period | Sales | Finance | Diff | Gross Profit | Finance | Diff | EBITDA | Finance | Diff |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| FY25 | 12,926,995.45 | 12,926,995.45 | 0.00 | 7,386,015.95 | 7,386,015.95 | 0.00 | 1,890,274.13 | 1,890,274.13 | 0.00 |
+| FY26 | 14,893,335.92 | 14,893,335.92 | 0.00 | 8,278,456.34 | 8,278,456.34 | 0.00 | 2,078,653.84 | 2,078,653.84 | 0.00 |
+| FY27 H1 | 8,171,216.44 | 8,171,216.44 | 0.00 | 4,564,110.83 | 4,564,110.83 | 0.00 | 1,183,741.83 | 1,183,741.83 | 0.00 |
+
+### Running it twice gives the same result
+
+The checks script prints a one-line fingerprint of the warehouse. The whole pipeline was run twice and the line was identical both times:
+
+```
+Fingerprint: 694,986 sales lines | sales 35,991,547.82 | GP 20,228,583.13 | ledger 16,213,808.04
+```
 
 ## Definitions and decisions
 
