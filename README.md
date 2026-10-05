@@ -17,7 +17,9 @@ This README is updated as each step is finished.
 | 4. Check | Automated data checks that stop the pipeline | Done |
 | 5. Reconcile | Sales, GP and EBITDA against finance's control totals | Done |
 | 6. Export | Marts for Power BI | Done |
-| 7. Report | Power BI model, measures and four pages | Next |
+| 7. Power BI model | Load the marts and set the relationships | Done |
+| 8. Measures | DAX measures, each tested against SQL | Next |
+| 9. Report | Four report pages | To do |
 
 ## How to run it
 
@@ -55,6 +57,7 @@ Every script can be run again at any time. Each one rebuilds its tables from scr
 | `04_checks.py` | Steps 4 and 5: the data checks and the reconciliation to finance |
 | `05_export.py` | Step 6: exports the star schema as Parquet files |
 | `run_pipeline.py` | Runs all the steps in order and stops if one fails |
+| `flame_yard.pbix` | The Power BI report |
 | `warehouse.duckdb` | The warehouse. Not in git; the scripts rebuild it |
 | `marts/` | The exported star schema, one Parquet file per table. Not in git; the scripts rebuild it |
 
@@ -275,6 +278,30 @@ Fingerprint: 694,986 sales lines | sales 35,991,547.82 | GP 20,228,583.13 | ledg
 - **Export runs last.** In `run_pipeline.py` it comes after the checks, so data that fails a check never reaches Power BI.
 - **The export checks itself.** Each file is read back and its row count compared to the warehouse, and the Sales and Gross Profit totals in the file must equal the reconciled totals. The script stops if they differ.
 - **SQL Server was the other option.** For a team, the marts would live in a database server such as SQL Server so that reports refresh on a schedule. For a single-machine work sample, files are simpler to hand over and give the same model.
+
+## Step 7: the Power BI model
+
+`flame_yard.pbix` loads the eight Parquet files from `marts` with no changes in Power Query. All cleaning stays in SQL.
+
+There are 11 relationships. Every one is many to one from a fact to a dimension, active, with a single filter direction from the dimension to the fact.
+
+| From (many) | To (one) |
+| --- | --- |
+| `fact_sales[txn_date]` | `dim_date[date]` |
+| `fact_sales[branch_code]` | `dim_branch[branch_code]` |
+| `fact_sales[item_code]` | `dim_item[item_code]` |
+| `fact_voids[txn_date]` | `dim_date[date]` |
+| `fact_voids[branch_code]` | `dim_branch[branch_code]` |
+| `fact_voids[item_code]` | `dim_item[item_code]` |
+| `fact_opex[month_start]` | `dim_date[date]` |
+| `fact_opex[branch_code]` | `dim_branch[branch_code]` |
+| `fact_opex[account_code]` | `dim_account[account_code]` |
+| `fact_budget[month_start]` | `dim_date[date]` |
+| `fact_budget[branch_code]` | `dim_branch[branch_code]` |
+
+- **No fact joins to another fact.** Sales, costs and budget only meet through the shared dimensions, which is what lets one branch or month filter work on all of them.
+- **Single direction only.** Filters flow from dimensions to facts. Two-way filters can give ambiguous results and are not needed here.
+- **`dim_date` is marked as the date table**, so the year on year measures use the fiscal calendar built in SQL.
 
 ## Definitions and decisions
 
