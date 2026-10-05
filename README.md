@@ -16,8 +16,8 @@ This README is updated as each step is finished.
 | 3. Model | Star schema: facts and dimensions | Done |
 | 4. Check | Automated data checks that stop the pipeline | Done |
 | 5. Reconcile | Sales, GP and EBITDA against finance's control totals | Done |
-| 6. Export | Marts for Power BI | Next |
-| 7. Report | Power BI model, measures and four pages | To do |
+| 6. Export | Marts for Power BI | Done |
+| 7. Report | Power BI model, measures and four pages | Next |
 
 ## How to run it
 
@@ -35,6 +35,7 @@ python 01_land_raw.py    # builds warehouse.duckdb with the raw tables
 python 02_stage.py       # builds the clean staging tables
 python 03_model.py       # builds the star schema
 python 04_checks.py      # runs the data checks and the reconciliation
+python 05_export.py      # writes the star schema to the marts folder
 ```
 
 Every script can be run again at any time. Each one rebuilds its tables from scratch, so a rerun gives the same result and never creates duplicates.
@@ -52,8 +53,10 @@ Every script can be run again at any time. Each one rebuilds its tables from scr
 | `02_stage.py` | Step 2: cleans the raw tables into staging tables |
 | `03_model.py` | Step 3: builds the facts and dimensions |
 | `04_checks.py` | Steps 4 and 5: the data checks and the reconciliation to finance |
+| `05_export.py` | Step 6: exports the star schema as Parquet files |
 | `run_pipeline.py` | Runs all the steps in order and stops if one fails |
 | `warehouse.duckdb` | The warehouse. Not in git; the scripts rebuild it |
+| `marts/` | The exported star schema, one Parquet file per table. Not in git; the scripts rebuild it |
 
 ## The layers
 
@@ -249,6 +252,29 @@ The checks script prints a one-line fingerprint of the warehouse. The whole pipe
 ```
 Fingerprint: 694,986 sales lines | sales 35,991,547.82 | GP 20,228,583.13 | ledger 16,213,808.04
 ```
+
+## Step 6: export for Power BI
+
+`05_export.py` writes each fact and dimension table to its own Parquet file in the `marts` folder. Power BI reads these files and nothing else.
+
+| File | Rows | Size |
+| --- | ---: | ---: |
+| `fact_sales.parquet` | 694,986 | 10.7 MB |
+| `fact_voids.parquet` | 8,661 | 0.1 MB |
+| `fact_opex.parquet` | 2,587 | under 0.1 MB |
+| `fact_budget.parquet` | 628 | under 0.1 MB |
+| `dim_date.parquet` | 1,095 | under 0.1 MB |
+| `dim_branch.parquet` | 12 | under 0.1 MB |
+| `dim_item.parquet` | 27 | under 0.1 MB |
+| `dim_account.parquet` | 9 | under 0.1 MB |
+
+### Design choices
+
+- **Parquet, not CSV.** Parquet keeps the data types, so a date arrives in Power BI as a date and a number as a number. A CSV would make Power BI guess the types again, which is the kind of guessing the pipeline was built to avoid. It is also much smaller.
+- **Only the star schema is exported.** Raw and staging tables stay in the warehouse, so the report can only see cleaned and checked data.
+- **Export runs last.** In `run_pipeline.py` it comes after the checks, so data that fails a check never reaches Power BI.
+- **The export checks itself.** Each file is read back and its row count compared to the warehouse, and the Sales and Gross Profit totals in the file must equal the reconciled totals. The script stops if they differ.
+- **SQL Server was the other option.** For a team, the marts would live in a database server such as SQL Server so that reports refresh on a schedule. For a single-machine work sample, files are simpler to hand over and give the same model.
 
 ## Definitions and decisions
 

@@ -116,7 +116,7 @@ con.execute("""
 # the expense line in the same month here.
 con.execute("""
     create or replace table fact_opex as
-    select branch_code, month_start, account_code, sum(amount_excl) as amount_excl
+    select branch_code, month_start, account_code, cast(sum(amount_excl) as decimal(18, 2)) as amount_excl
     from stg_gl
     group by all
 """)

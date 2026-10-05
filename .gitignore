@@ -2,3 +2,4 @@ _answer_key/
 *.duckdb
 __pycache__/
 CLAUDE.md
+marts/
