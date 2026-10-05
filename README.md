@@ -21,7 +21,7 @@ This README is updated as each step is finished.
 | 8. Measures | 31 DAX measures, each tested against SQL | Done |
 | 9. Report | Four report pages | Done |
 | 10. Excel check | Pivot of the FY26 branch P&L from the warehouse | Done |
-| 11. Findings | One-page summary for the Financial Manager | Next |
+| 11. Findings | One-page summary for the Financial Manager | Drafted in `findings.md` |
 
 ## How to run it
 
@@ -64,6 +64,7 @@ Every script can be run again at any time. Each one rebuilds its tables from scr
 | `excel/fy26_branch_pl_check.xlsx` | The Excel check: the same data with a pivot table on the `pivot` sheet |
 | `run_pipeline.py` | Runs all the steps in order and stops if one fails |
 | `flame_yard.pbix` | The Power BI report |
+| `findings.md` | One-page summary of findings for the Financial Manager, with a recommended action per finding |
 | `warehouse.duckdb` | The warehouse. Not in git; the scripts rebuild it |
 | `marts/` | The exported star schema, one Parquet file per table. Not in git; the scripts rebuild it |
 
